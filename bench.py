@@ -293,13 +293,18 @@ def run_ablation(chunker_name: str = "by_heading") -> None:
 
 
 def main() -> int:
+    global DATA_DIR
+
     parser = argparse.ArgumentParser(description="Benchmark retrieval trên corpus của nhóm.")
     parser.add_argument("--chunker", default="by_heading", choices=[*CHUNKERS, "all"])
+    parser.add_argument("--data", type=Path, default=DATA_DIR,
+                        help=f"Thư mục corpus (mặc định: {DATA_DIR})")
     parser.add_argument("--baseline", action="store_true", help="In bảng baseline comparator")
     parser.add_argument("--ablation", action="store_true", help="In A/B metadata filter")
     parser.add_argument("--quiet", action="store_true", help="Chỉ in tổng kết")
     args = parser.parse_args()
 
+    DATA_DIR = args.data
     if not DATA_DIR.exists():
         print(f"Không tìm thấy thư mục dữ liệu: {DATA_DIR}")
         return 1
