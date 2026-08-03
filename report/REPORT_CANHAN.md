@@ -2,7 +2,7 @@
 
 **Họ tên:** Trương Minh Tâm — **MSSV:** 2A202602005
 **Lớp:** K4 — Day07 Data Foundations (biến thể K4: chính sách TMĐT / hỗ trợ khách hàng)
-**Nhóm:** [Tên nhóm]
+**Nhóm:** [E2]
 **Ngày:** 2026-08-03
 
 > **Nộp 1 bản / sinh viên.** Phần nhóm (lựa chọn tài liệu, thiết kế chiến lược, bộ câu hỏi đánh giá, demo) nộp chung 1 bản trong `REPORT_NHOM.md`. Chi tiết thang điểm: `docs/SCORING.md`.
@@ -204,14 +204,14 @@ Chạy trong `.venv` Python 3.11.9 (môi trường chuẩn của lớp), không 
 ```
 $ python main.py "Chunking là gì?"
 === Demo pipeline nạp dữ liệu (ingest.build_knowledge_base) ===
-Thư mục dữ liệu: data/tra-hang-hoan-tien
+Thư mục dữ liệu: data/data-nhom
 Backend nhúng: mock embeddings fallback
 Đã nạp 131 chunk vào EmbeddingStore
 
 === Tìm kiếm (EmbeddingStore.search) ===
 Câu hỏi: Chunking là gì?
-1. score=0.365 source=data\tra-hang-hoan-tien\buyer-return-eligibility.md
-2. score=0.334 source=data\tra-hang-hoan-tien\seller-return-evidence.md
+1. score=0.365 source=data\data-nhom\buyer-return-eligibility.md
+2. score=0.334 source=data\data-nhom\seller-return-evidence.md
 3. ...
 === KnowledgeBaseAgent === (prompt có ngữ cảnh đánh số [1][2][3] kèm doc_id nguồn)
 ```
@@ -267,75 +267,119 @@ Chạy **5 câu hỏi đánh giá của nhóm** trên mã nguồn cá nhân củ
 
 **Chiến lược của tôi:** `MarkdownHeadingChunker(chunk_size=1000, min_chunk_size=120)` — chunker **TV4 tự viết**,
 cắt theo tiêu đề Markdown (`##` / `###`). Sinh **115 chunk**, độ dài trung bình **497 ký tự**.
-**Lệnh chạy:** `python bench.py --chunker by_heading` (corpus nhóm `data/tra-hang-hoan-tien/`, 5 query khóa
-tại `report/REPORT_NHOM.md` mục 3 — **dùng chung với cả nhóm**).
-**Backend nhúng:** mock (xem cảnh báo ở mục 4 — điểm số không đo được chất lượng ngữ nghĩa).
+**Lệnh chạy:** `EMBEDDING_PROVIDER=local python bench.py --chunker by_heading` (corpus nhóm
+`data/data-nhom/`, 5 query khóa tại `report/REPORT_NHOM.md` mục 3 — **dùng chung với cả nhóm**).
+**Backend nhúng:** `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (384 chiều, chạy offline).
+Tôi chạy **cả hai** backend; bảng chính là local, đối chứng mock ở cuối mục.
 
 | # | Câu hỏi (Query) | Top-1 Chunk truy xuất được (tóm tắt) | Score | Có liên quan? | Câu trả lời của Agent (tóm tắt) |
 |---|-------|--------------------------------|-------|-----------|------------------------|
-| 1 | Thời hạn gửi yêu cầu THHT? Thực phẩm tươi sống có khác? | `buyer-return-shipping` — "#### Đơn vị vận chuyển đến lấy hàng (Miễn phí trả hàng)" | 0.2826 | ✗ không chunk nào trong top-3 chứa bằng chứng | Trả về quy định **hoàn phí vận chuyển**, không nêu mốc 15 ngày / 24 giờ → **thiếu grounding** |
-| 2 | Thẻ tín dụng/ghi nợ: tiền về đâu, bao lâu? | `buyer-return-shipping` — "### 1.3. Hướng dẫn Người mua trả hàng tại bưu cục" | 0.2456 | ✗ gold `buyer-refund-timeline` không có trong top-3 | Trả về hướng dẫn gửi hàng tại bưu cục, không có "7–14 ngày làm việc" → **thiếu grounding** |
-| 3 | Có những hình thức gửi hàng hoàn nào? Cái nào miễn phí? | `seller-refund-appeal` — "### Các bước thực hiện: Truy cập Kênh Người Bán" | 0.2921 | ✗ **2/3 top-3 là tài liệu seller** dù câu hỏi về người mua | Trả về điều kiện yêu cầu THHT, không liệt kê được 3 hình thức → **thiếu grounding** |
-| 4 | Người bán có bao lâu để khiếu nại hoàn tiền ngay? | `seller-refund-appeal` — "## 5. Thông tin Người bán nên chuẩn bị" | 0.3242 | ~ **hạng 2** mới là chunk chứa đáp án ("## 6. Các mốc thời gian quan trọng", 0.2515) | "Khiếu nại quyết định hoàn tiền ngay \| **Trong vòng 2 ngày**" → **CÓ grounding**, đúng đáp án |
-| 5 | Ai được trả hàng vì đổi ý? Hạn chế sản phẩm nào? | `seller-return-process` — "## C. Trách nhiệm của Người bán trong quá trình xử lý" | 0.3350 | ✗ đúng tài liệu (hạng 1 và 3) nhưng **sai mục** | Trả về bảng thời hạn khiếu nại, không nêu Kim Cương/Vàng/VIP → **thiếu grounding** |
+| 1 | Thời hạn gửi yêu cầu THHT? Thực phẩm tươi sống có khác? | `buyer-return-eligibility` — "Thời gian để Shopee tiếp nhận yêu cầu…" | **0.7539** | ✓ **hạng 1 có bằng chứng** | Nêu đúng "**24 giờ** kể từ lúc đơn cập nhật Giao hàng thành công" cho thực phẩm tươi sống → **CÓ grounding** |
+| 2 | Thẻ tín dụng/ghi nợ: tiền về đâu, bao lâu? | `buyer-refund-timeline` — "\| Phương thức thanh toán \| Tiền hoàn trả được gửi qua \|…" | 0.7185 | ~ **hạng 1 là bảng** nhưng agent không trích đúng dòng | Trả về quy tắc "hoàn về đúng thẻ đã dùng", **không nêu 7–14 ngày làm việc** → thiếu grounding |
+| 3 | Có những hình thức gửi hàng hoàn nào? Cái nào miễn phí? | `return-refund-policy` — "# Chính sách Trả hàng và Hoàn tiền ## 1. Đối tượng…" | 0.6355 | ~ gold ở **hạng 3** (`buyer-return-shipping`, 0.6159) | Trả về quy định hoàn phí, không liệt kê đủ 3 hình thức → thiếu grounding |
+| 4 | Người bán có bao lâu để khiếu nại hoàn tiền ngay? | `seller-return-process` — "### 4. Mốc thời gian Người bán có thể khiếu nại" | **0.8705** | ~ **hạng 2** mới chứa đáp án (`seller-refund-appeal`, 0.8687) | "Người bán phải gửi khiếu nại **trong vòng 2 ngày** kể từ khi Shopee gửi thông báo" → **CÓ grounding**, đúng đáp án |
+| 5 | Ai được trả hàng vì đổi ý? Hạn chế sản phẩm nào? | `seller-return-process` — "### 2. Các lý do Trả hàng/Hoàn tiền" | 0.5729 | ✗ đúng tài liệu (cả 3 hạng) nhưng **sai mục** | Trả về định nghĩa "Trả hàng COM", không nêu Kim Cương/Vàng/VIP → thiếu grounding |
 
-**Bao nhiêu câu hỏi trả về chunk có liên quan trong top-3?** **1** / 5 (chấm ở mức chunk)
+**Bao nhiêu câu hỏi trả về chunk có liên quan trong top-3?** **4** / 5 (chấm ở mức chunk)
 
-Chỉ số đầy đủ: `doc-hit@3 = 2/5` · `evidence-hit@3 = 1/5` · `evidence-hit@1 = 0/5` · `grounded = 1/5` →
-**điểm retrieval = 1/10** theo `docs/SCORING.md`.
+Chỉ số đầy đủ: `doc-hit@3 = 5/5` · `evidence-hit@3 = 4/5` · `evidence-hit@1 = 2/5` · `grounded = 2/5` →
+**điểm retrieval = 5/10** theo `docs/SCORING.md`.
 
-### So sánh với ba chiến lược còn lại (cùng corpus, cùng 5 query, cùng embedder)
+### So sánh với ba chiến lược còn lại (cùng corpus, cùng 5 query, cùng embedder local)
 
-| Chiến lược | Số chunk | Dài TB | doc@3 | evid@3 | grounded | Điểm /10 |
-|---|---|---|---|---|---|---|
-| `fixed_size` (500/50) | 131 | 485 | 3/5 | 0/5 | 0/5 | 0 |
-| `by_sentences` (3 câu) | 179 | 319 | 2/5 | 0/5 | 0/5 | 0 |
-| `recursive` (500) | 158 | 362 | **4/5** | 1/5 | 1/5 | **2** |
-| **`by_heading` (của tôi)** | **115** | **497** | 2/5 | **1/5** | **1/5** | 1 |
+| Chiến lược | Số chunk | Dài TB | doc@3 | evid@3 | **evid@1** | grounded | Điểm /10 |
+|---|---|---|---|---|---|---|---|
+| `fixed_size` (500/50) | 131 | 485 | 5/5 | 4/5 | **3/5** | 2/5 | 6 |
+| **`by_sentences` (3 câu)** | 179 | 319 | **5/5** | **5/5** | **3/5** | **3/5** | **8** |
+| `recursive` (500) | 158 | 362 | 4/5 | 3/5 | 2/5 | 3/5 | 5 |
+| **`by_heading` (của tôi)** | **115** | **497** | **5/5** | 4/5 | 2/5 | 2/5 | 5 |
 
-**Nhận xét riêng của tôi về kết quả này.** Chiến lược của tôi **không** đứng đầu về điểm (1/10 so với 2/10 của
-`recursive`), và tôi không coi đó là thất bại vì hai lý do có số liệu hậu thuẫn:
+**Nhận xét riêng của tôi về kết quả này.** Chiến lược của tôi **không** đứng đầu (5/10 so với 8/10 của
+`by_sentences`), và điều đáng nói là **tôi đã dự đoán ngược**. Tôi kỳ vọng `by_heading` thắng vì văn bản
+chính sách viết theo điều khoản, cắt theo heading thì giữ được *quy tắc + điều kiện + ngoại lệ* trong một
+chunk. Lập luận đó đúng về cấu trúc dữ liệu nhưng **bỏ sót cơ chế xếp hạng** — và đây là điều tôi học được
+nhiều nhất từ bài này.
 
-1. **Chênh lệch 1 điểm nằm trong vùng nhiễu của mock embeddings.** Cả bốn chiến lược đều rơi vào khoảng
-   0–2/10; với hash MD5 (xem phân tích ở mục 4), thứ hạng trong top-3 gần như ngẫu nhiên. Xếp hạng theo điểm
-   ở đây không có ý nghĩa thống kê.
-2. **Chỉ số không phụ thuộc embedding thì `by_heading` tốt nhất:** nó có **ít "đúng tài liệu nhưng sai mục"
-   nhất (1/5**, so với 3/5 của `fixed_size` và `recursive`), và **ít chunk nhất (115** so với 179 của
-   `by_sentences`) — tức tiết kiệm 36% token phải nhúng cho cùng lượng nội dung. Đây là hai chỉ số mà đề bài
-   chỉ ra là đáng tin khi dùng mock: *số chunk, coherence và provenance*.
+**Vì sao tôi thua, đọc từ chính số liệu của mình:**
 
-Điều tôi rút ra: `recursive` "thắng" ở chỉ số doc@3 (4/5) nhưng chính nó lại là chiến lược **thổi phồng nhiều
-nhất** khi chấm theo doc_id — 4/5 tụt xuống 1/5 khi kiểm bằng chứng thật. `by_heading` trung thực hơn:
-2/5 tụt còn 1/5.
+- `by_heading` đạt **doc@3 = 5/5** — ngang `by_sentences`, tức nó **tìm đúng tài liệu ở cả 5 query**. Ranh
+  giới chunk theo heading hoạt động đúng như thiết kế.
+- Nhưng **evid@1 chỉ 2/5** (so với 3/5) và evid@3 là 4/5 (so với 5/5). Nghĩa là chunk chứa đáp án **có** lọt
+  top-3 nhưng thường xếp hạng 2–3 chứ không phải hạng 1.
+- Nguyên nhân là **pha loãng tín hiệu**: cosine so sánh vector *trung bình hoá* của cả chunk. Chunk của tôi
+  dài TB 497 ký tự và chứa nhiều ý trong cùng một mục; câu chứa đáp án bị trung bình hoá cùng các câu khác.
+  Chunk `by_sentences` chỉ 319 ký tự nên tín hiệu đậm đặc hơn.
+- Q3 minh hoạ rõ nhất: gold `buyer-return-shipping` bị đẩy xuống **hạng 3** (0.6159), hai slot đầu là
+  `return-refund-policy` — văn bản chính sách gốc dài nhất, dùng ngôn ngữ bao quát nên "giống mọi query một
+  cách chung chung". Với `by_sentences`, chính gold đó lên hạng 1 và đạt FULL 2đ.
+
+**Điều tôi vẫn bảo lưu:** `by_heading` **ít chunk nhất (115 so với 179)** — tiết kiệm **36% token** phải
+nhúng và lưu trữ cho cùng lượng nội dung, và khi chunk lọt top-k thì người đọc thấy trọn cả mục kèm ngoại lệ
+thay vì 3 câu rời rạc. Đây là đánh đổi thật giữa *chi phí + khả năng đọc hiểu* và *độ chính xác xếp hạng*,
+không phải một chiến lược thua toàn diện. **Cách sửa cụ thể tôi sẽ làm nếu có thêm thời gian:** hạ
+`chunk_size` từ 1000 xuống ~350 để giữ ranh giới heading *và* có mật độ tín hiệu của chunk ngắn — cơ chế cắt
+tiếp mục dài kèm gắn lại tiêu đề đã có sẵn trong `MarkdownHeadingChunker`, chỉ cần đổi tham số.
+
+### Đối chứng mock vs local — vì sao tôi phải chạy lại toàn bộ
+
+Vòng phân tích đầu tiên tôi chạy bằng `_mock_embed` và kết luận **ngược hẳn**:
+
+| Chiến lược | Điểm (mock) | Điểm (local) |
+|---|---|---|
+| `fixed_size` | 0/10 | **6/10** |
+| `by_sentences` | **0/10** | **8/10** ⬆ |
+| `recursive` | **2/10** ⬅ *(cao nhất)* | 5/10 |
+| `by_heading` (của tôi) | 1/10 | 5/10 |
+
+Với mock, `recursive` đứng đầu và `by_sentences` đứng **chót**; với local, hai chiến lược này **hoán đổi vị
+trí chính xác**. Nếu tôi nộp báo cáo chỉ dựa trên mock, kết luận "recursive tốt nhất" sẽ sai hoàn toàn — đúng
+như cảnh báo tôi tự viết ở mục 4 rằng mock chỉ phân biệt được *trùng khớp tuyệt đối*. Bài học phương pháp:
+**embedder là nền của mọi phép đo, không phải tham số tinh chỉnh sau cùng.** Phải chọn embedder gần với môi
+trường thật *trước*, rồi mới benchmark chiến lược chunk.
+
+Một chi tiết đáng chú ý: `recursive` là chiến lược **duy nhất không cải thiện doc@3** (4/5 → 4/5). Điểm mock
+cao của nó đến từ **may mắn về độ dài chunk**, không phải chất lượng ranh giới — và may mắn đó không chuyển
+thành lợi thế khi có ngữ nghĩa thật.
 
 ### Hai failure case tôi phân tích
+
+Cả hai đều lấy từ lần chạy **embedding local** — tức là các lỗi này **vẫn còn** sau khi đã thay mock bằng mô
+hình ngữ nghĩa thật, nên chúng là lỗi của *thiết kế chunk*, không phải của embedder.
 
 **(1) Q4 — chunk đúng chủ đề nhưng không chứa số liệu lại thắng chunk có đáp án.**
 
 | Hạng | Chunk | Score | Chứa bằng chứng? |
 |---|---|---|---|
-| 1 | `seller-refund-appeal` — "## 5. Thông tin Người bán nên chuẩn bị" | **0.3242** | ✗ |
-| 2 | `seller-refund-appeal` — "## 6. Các mốc thời gian quan trọng" | 0.2515 | **✓ "Trong vòng 2 ngày" + "3–5 ngày làm việc"** |
-| 3 | `seller-return-evidence` — "video đóng gói…" | 0.2434 | ✗ |
+| 1 | `seller-return-process` — "### 4. Mốc thời gian Người bán có thể khiếu nại" | **0.8705** | ✗ |
+| 2 | `seller-refund-appeal` — "### Thời hạn khiếu nại" | 0.8687 | **✓ "trong vòng 2 ngày"** |
+| 3 | `seller-return-process` — "Shopee có thể quyết định hoàn tiền ngay…" | 0.8461 | **✓** |
 
-*Nguyên nhân:* mục 5 liệt kê "lý do khiếu nại, thông tin đơn hàng, mã vận đơn…" — dày đặc từ trùng với query
-("khiếu nại", "Người bán"), nên cosine cao. Mục 6 là bảng ngắn chỉ có cặp *nội dung → thời hạn*, ít từ trùng
-hơn dù chứa đúng con số cần tìm. Đây là minh chứng trực tiếp cho câu **"score cao là tín hiệu xếp hạng, không
-phải bằng chứng nội dung đúng"**: chênh lệch 0.0727 điểm cosine đã đủ đẩy chunk vô dụng lên trên chunk có đáp án.
+*Nguyên nhân:* chunk hạng 1 có **tiêu đề trùng gần như từng chữ với query** ("mốc thời gian", "khiếu nại"),
+nên cosine cao nhất — nhưng phần thân chỉ dẫn chiếu sang mục khác chứ không nêu con số nào. Đây là minh chứng
+trực tiếp cho câu **"score cao là tín hiệu xếp hạng, không phải bằng chứng nội dung đúng"**, và nó **sắc hơn
+với embedding thật**: chênh lệch giữa hạng 1 và hạng 2 chỉ **0.0018** — nhỏ hơn cả sai số làm tròn, tức thứ
+tự giữa chúng gần như ngẫu nhiên. Một chunk vô dụng và một chunk có đáp án được mô hình coi là *giống query
+ngang nhau*.
+*Điều tôi học được:* loại lỗi này **embedding tốt hơn không sửa được** — chunk hạng 1 *thật sự* nói về đúng
+chủ đề, nó chỉ không chứa dữ kiện. Cần tín hiệu bổ sung ngoài ngữ nghĩa.
 *Thay đổi đề xuất:* với câu hỏi dạng "bao lâu", thêm bước rerank ưu tiên chunk chứa mẫu **số + đơn vị thời
-gian** (regex `\d+\s*(ngày|giờ|tháng)`), hoặc chuyển sang embedding ngữ nghĩa thật.
+gian** (regex `\d+\s*(ngày|giờ|tháng)`).
 
 **(2) Q5 — top-3 đúng tài liệu nhưng sai section (điểm yếu riêng của chunker theo heading).**
 
-Top-3: `seller-return-process` mục **C. Trách nhiệm của Người bán** (0.3350, đúng tài liệu — sai mục),
-`seller-refund-appeal` (0.3000), `buyer-return-eligibility` mục **2. Hoàn Mã giảm giá/Shopee Xu**
-(0.2637, đúng tài liệu — sai mục). Đáp án thật nằm ở `buyer-return-eligibility` mục **1.3** và
-`seller-return-process` mục **A.3–A.4**.
+Top-3 (`by_heading`, không filter): `seller-return-process` mục **2. Các lý do Trả hàng/Hoàn tiền** (0.5729,
+đúng tài liệu — sai mục), `return-refund-policy` mục **3. Điều kiện yêu cầu** (0.5303), `buyer-return-eligibility`
+— "Bạn có thể yêu cầu Trả hàng/Hoàn tiền trong các trường hợp sau" (0.5275, đúng tài liệu — sai mục). Đáp án
+thật ("Kim Cương", "hạng Vàng") nằm ở `buyer-return-eligibility` mục **1.3** và `seller-return-process` mục
+**A.3–A.4**. **MISS 0/2đ** — trong khi `fixed_size` và `by_sentences` đều lấy được 1đ.
 
-*Nguyên nhân:* đây đúng là hiện tượng đề bài cảnh báo với chunker theo heading — **mọi mục trong cùng tài liệu
-đều nói về Trả hàng/Hoàn tiền nên điểm sát nhau**, mục nào lọt top-3 gần như ngẫu nhiên. Hai chunk trong top-3
-thuộc đúng tài liệu gold nhưng lệch mục. Thêm nữa, `by_heading` **không có overlap**: mỗi thông tin chỉ có
-**một cơ hội duy nhất** lọt top-k, không như `fixed_size` có 50 ký tự chồng lấn.
+*Nguyên nhân:* đây đúng là hiện tượng đề bài cảnh báo với chunker theo heading — **mọi mục trong cùng tài
+liệu đều nói về Trả hàng/Hoàn tiền nên điểm sát nhau** (0.5729 / 0.5303 / 0.5275, chênh nhau chưa tới 0.05),
+mục nào lọt top-3 gần như ngẫu nhiên. Đáng chú ý: đây là query có **score thấp nhất toàn benchmark** — dấu
+hiệu cho thấy không chunk nào thật sự khớp, vì bằng chứng bị **rải ở 3 tài liệu khác nhau** và mỗi chỗ chỉ
+nhắc thoáng qua "Kim Cương/Vàng". Thêm nữa, `by_heading` **không có overlap**: mỗi thông tin chỉ có **một cơ
+hội duy nhất** lọt top-k, không như `fixed_size` có 50 ký tự chồng lấn — và đó chính là lý do `fixed_size`
+lấy được điểm ở query này còn tôi thì không.
 *Thay đổi đề xuất:* thêm overlap ở mức mục (gắn 1–2 câu cuối của mục trước vào đầu mục sau), hoặc **prepend
 chuỗi heading cha** (`# Tài liệu > ## Mục A > ### Mục A.3`) vào mỗi chunk để embedding phân biệt được các mục
 cùng tài liệu thay vì chỉ thấy chúng "cùng nói về trả hàng".
@@ -354,11 +398,16 @@ cùng tài liệu thay vì chỉ thấy chúng "cùng nói về trả hàng".
 | Hướng tiếp cận của tôi (My Approach) | 9 / 10 | Giải thích đủ 5 phần; nêu được lựa chọn có chủ ý (cosine thay dot product) và 2 lỗi tự phát hiện — bug regex `\.\n`, dead code trong `delete_document` |
 | Hoàn thiện code (Core Implementation — tests) | 30 / 30 | `pytest tests -v` → **42 passed** trong `.venv` Python 3.11.9 |
 | Dự đoán độ tương tự (Similarity Predictions) | 5 / 5 | Dự đoán viết trước khi chạy; phân tích được nghịch lý cặp 2 vs 3 và hiệu ứng thác đổ của MD5 (kiểm chứng riêng: 0.1623) |
-| Kết quả truy xuất của tôi (Competition Results) | 5 / 10 | `evidence-hit@3 = 1/5`, `grounded = 1/5` trên `by_heading`; chấm mức chunk theo `docs/SCORING.md` |
-| **Tổng phần cá nhân** | **54 / 60** | |
+| Kết quả truy xuất của tôi (Competition Results) | 8 / 10 | `doc-hit@3 = 5/5`, `evidence-hit@3 = 4/5`, `grounded = 2/5` trên `by_heading` với embedding local; chấm mức chunk theo `docs/SCORING.md`; có đối chứng mock/local và 2 failure case có bằng chứng top-k |
+| **Tổng phần cá nhân** | **57 / 60** | |
 
-> Tôi tự trừ mạnh ở mục "Kết quả truy xuất": chỉ **1/5** query có chunk chứa bằng chứng trong top-3. Đây là
-> kết quả thật với mock embeddings, không phải xui rủi — và tôi giữ nguyên con số thay vì chuyển sang cách
-> chấm theo `doc_id` (vốn cho 2/5, thậm chí 4/5 với `recursive`) vì cách chấm đó **thổi phồng** kết quả:
-> chunk đúng tài liệu nhưng sai mục thì agent vẫn không trả lời được. Phần phân tích và hai failure case có
-> bằng chứng từ top-k là thứ tôi tin là có giá trị nhất trong mục này, không phải điểm số.
+> **Về mục "Kết quả truy xuất":** chiến lược của tôi được 5/10, thấp hơn `by_sentences` (8/10). Tôi vẫn tự
+> chấm 8/10 cho *mục báo cáo* này — không phải cho điểm benchmark — vì thứ đề bài yêu cầu ở đây là **phân
+> tích kết quả**, và phần có giá trị nhất lại đến từ việc tôi **dự đoán sai**: tôi đã tin chunk theo heading
+> sẽ thắng vì nó giữ được cấu trúc điều khoản, nhưng bỏ qua rằng cosine trung bình hoá cả chunk nên chunk
+> càng dài thì tín hiệu càng loãng. Chỉ chạy benchmark thật mới phát hiện ra, và tôi truy được nguyên nhân
+> đến tận cơ chế (`doc@3 = 5/5` nhưng `evid@1 = 2/5` — tìm đúng tài liệu, sai thứ hạng trong tài liệu).
+>
+> Tôi giữ cách chấm ở **mức chunk** thay vì `doc_id`, dù `doc_id` cho tôi 5/5 nghe đẹp hơn nhiều: chunk đúng
+> tài liệu nhưng sai mục thì agent vẫn không trả lời được. Chính khoảng cách giữa hai cách chấm này (5/5 so
+> với 4/5, và tệ hơn nhiều khi chạy mock: 2/5 so với 1/5) là phát hiện tôi thấy đáng giá nhất.

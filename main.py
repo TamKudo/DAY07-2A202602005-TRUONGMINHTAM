@@ -19,7 +19,7 @@ from src.embeddings import (
 
 # Thư mục dữ liệu mặc định cho demo = bộ khởi động cố định của lớp K4.
 # Đổi bằng biến môi trường: LAB_DATA_DIR=data/<thu-muc-cua-nhom> python3 main.py
-DEFAULT_DATA_DIR = "data/tra-hang-hoan-tien"
+DEFAULT_DATA_DIR = "data/data-nhom"
 
 
 def _select_embedder():

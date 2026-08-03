@@ -1,6 +1,16 @@
-# Bộ 5 Benchmark Query + Gold Answer (dùng chung cả nhóm)
+# Bộ 5 Benchmark Query + Gold Answer — **BẢN ĐẦU (v1), ĐÃ THAY THẾ**
 
-Corpus: `data/tra-hang-hoan-tien/` (7 tài liệu, nguồn Shopee Trung tâm trợ giúp, thu thập 2026-08-03).
+> ⚠️ **Đây không phải bộ query đang dùng.** Tài liệu này ghi lại bộ query **bản đầu**, xây trên corpus v1
+> (`data/data-canhan/`, 7 file crawl HTML bị duỗi thành text phẳng). Các `doc_id` ở đây
+> (`quan-ly-don-tra-hang-hoan-tien`, `chinh-sach-tra-hang-hoan-tien`…) **không còn tồn tại** trong corpus
+> hiện tại.
+>
+> **Bộ 5 query chính thức của nhóm** — chạy trên `data/data-nhom/` — nằm ở **`REPORT_NHOM.md` mục 3**, và là
+> bộ được khai báo trong `bench.py` (hằng `QUERIES`). Giữ file này để đối chứng quá trình: nó cho thấy bộ
+> query đã được viết lại thế nào sau khi nhóm đổi sang corpus có heading Markdown sạch, đặc biệt là Q2 (viết
+> lại thành câu hỏi trung lập vai) và việc bổ sung **chuỗi bằng chứng** cho từng query.
+
+Corpus (v1): `data/data-canhan/` (7 tài liệu, nguồn Shopee Trung tâm trợ giúp, thu thập 2026-08-03).
 Mọi gold answer dưới đây đều trích được từ corpus — không dùng kiến thức ngoài. Cột "Nguồn" ghi `doc_id:dòng`
 theo file `.md` đã làm sạch để đối chiếu khi chấm retrieval.
 

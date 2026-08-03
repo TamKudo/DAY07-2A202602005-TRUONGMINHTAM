@@ -28,7 +28,11 @@ from src.chunking import (ChunkingStrategyComparator, FixedSizeChunker,
                           MarkdownHeadingChunker, RecursiveChunker, SentenceChunker)
 from src.embeddings import _mock_embed
 
-DATA_DIR = Path("data/tra-hang-hoan-tien")
+# Backend nhúng: mặc định mock, đổi bằng EMBEDDING_PROVIDER=local|openai (xem Phụ lục B).
+# Gán trong main() để cả run_benchmark/run_ablation dùng chung một backend duy nhất.
+EMBEDDER = _mock_embed
+
+DATA_DIR = Path("data/data-nhom")
 TOP_K = 3
 
 # 5 benchmark query của nhóm.
@@ -188,7 +192,7 @@ def run_baseline() -> None:
 
 
 def run_benchmark(chunker_name: str, show_detail: bool = True) -> dict:
-    store = build_knowledge_base(DATA_DIR, embedding_fn=_mock_embed, chunker=CHUNKERS[chunker_name]())
+    store = build_knowledge_base(DATA_DIR, embedding_fn=EMBEDDER, chunker=CHUNKERS[chunker_name]())
     size = store.get_collection_size()
     lengths = [len(r["content"]) for r in store._store]
     avg_len = sum(lengths) / len(lengths) if lengths else 0
@@ -251,7 +255,7 @@ def run_ablation(chunker_name: str = "by_heading") -> None:
     print(f"\n{'=' * 96}")
     print(f"ABLATION — A/B metadata filter (chunker={chunker_name})")
     print("=" * 96)
-    store = build_knowledge_base(DATA_DIR, embedding_fn=_mock_embed, chunker=CHUNKERS[chunker_name]())
+    store = build_knowledge_base(DATA_DIR, embedding_fn=EMBEDDER, chunker=CHUNKERS[chunker_name]())
 
     total = store.get_collection_size()
     both = sum(1 for r in store._store if r["metadata"].get("customer_role") == "both")
@@ -293,7 +297,7 @@ def run_ablation(chunker_name: str = "by_heading") -> None:
 
 
 def main() -> int:
-    global DATA_DIR
+    global DATA_DIR, EMBEDDER
 
     parser = argparse.ArgumentParser(description="Benchmark retrieval trên corpus của nhóm.")
     parser.add_argument("--chunker", default="by_heading", choices=[*CHUNKERS, "all"])
@@ -309,8 +313,15 @@ def main() -> int:
         print(f"Không tìm thấy thư mục dữ liệu: {DATA_DIR}")
         return 1
 
-    print(f"Corpus: {DATA_DIR} | Embeddings: mock (hash-based, KHÔNG phản ánh ngữ nghĩa)")
-    print(f"Bộ query: 5 câu khóa tại report/BENCHMARK_QUERIES.md | top_k={TOP_K}")
+    # Dùng chung bộ chọn backend với main.py: EMBEDDING_PROVIDER=mock|local|openai.
+    from main import _select_embedder
+
+    EMBEDDER = _select_embedder()
+    backend = getattr(EMBEDDER, "_backend_name", type(EMBEDDER).__name__)
+    warn = "  <-- hash-based, KHÔNG phản ánh ngữ nghĩa" if backend == "mock embeddings fallback" else ""
+
+    print(f"Corpus: {DATA_DIR} | Embeddings: {backend}{warn}")
+    print(f"Bộ query: 5 câu khóa tại report/REPORT_NHOM.md muc 3 | top_k={TOP_K}")
     print("Chấm ở MỨC CHUNK: chunk phải chứa chuỗi bằng chứng, không chỉ đúng doc_id.")
 
     if args.baseline:

@@ -26,7 +26,7 @@ from bench import CHUNKERS, QUERIES, extractive_llm, has_evidence
 from ingest import build_knowledge_base
 from src.agent import KnowledgeBaseAgent
 
-DEFAULT_DATA_DIR = Path(os.getenv("LAB_DATA_DIR", "data/tra-hang-hoan-tien"))
+DEFAULT_DATA_DIR = Path(os.getenv("LAB_DATA_DIR", "data/data-nhom"))
 ROLES = ["(không lọc)", "buyer", "seller", "both"]
 
 # Cache store theo (thư mục, tên chunker) để không phải nạp lại corpus mỗi request.
