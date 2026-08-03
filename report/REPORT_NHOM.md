@@ -1,6 +1,6 @@
 # Báo Cáo Nhóm — Lab 7: Embedding & Vector Store
 
-**Nhóm:** [Tên nhóm]
+**Nhóm:** [A3.1]
 **Thành viên:** Trương Minh Tâm — 2A202602005 (lớp K4)
 **Ngày:** 2026-08-03
 
