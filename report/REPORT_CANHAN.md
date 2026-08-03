@@ -384,8 +384,24 @@ lấy được điểm ở query này còn tôi thì không.
 chuỗi heading cha** (`# Tài liệu > ## Mục A > ### Mục A.3`) vào mỗi chunk để embedding phân biệt được các mục
 cùng tài liệu thay vì chỉ thấy chúng "cùng nói về trả hàng".
 
-**Điều hay nhất tôi học được từ thành viên khác / nhóm khác (qua demo):**
-> *(điền sau buổi demo)* — Điểm tôi muốn mang ra thảo luận: liệu nhóm khác có gặp cùng hiện tượng tài liệu
+**Điều hay nhất tôi học được từ thành viên nhóm (qua demo):**
+> **Từ TV1 (`fixed_size`) — overlap có giá trị thật mà tôi đã đánh giá thấp.** Tôi từng coi cắt theo độ dài cố
+> định là chiến lược "ngây thơ" nhất, nhưng nó về **nhì (6/10)** và đạt `evidence-hit@1 = 3/5` — cao hơn tôi
+> (2/5). Lý do là **overlap 50 ký tự**: mỗi thông tin nằm ở ranh giới có hai cơ hội lọt top-k. Chunker của tôi
+> **không có overlap**, và đó chính xác là lý do tôi MISS ở Q5 trong khi TV1 lấy được điểm. Đây là bài học cụ
+> thể tôi sẽ áp dụng ngay: thêm overlap ở mức mục cho `MarkdownHeadingChunker`.
+>
+> **Từ TV2 (`by_sentences`) — chunk ngắn thắng chunk "đúng cấu trúc".** Tôi tối ưu cho *ranh giới ngữ nghĩa
+> đúng*, TV2 tối ưu cho *chunk ngắn*, và TV2 thắng (8/10 so với 5/10). Điều này buộc tôi nhìn lại một giả định
+> nền: retrieval **không thưởng cho chunk có cấu trúc đẹp, nó thưởng cho chunk có tín hiệu đậm đặc**. Hai mục
+> tiêu đó không trùng nhau như tôi tưởng — và tôi chỉ nhận ra khi thấy số liệu của TV2 đặt cạnh của mình.
+>
+> **Từ TV3 (`recursive`) — bài học về việc tin số liệu của chính mình.** Với mock, TV3 đứng đầu; với local,
+> TV3 chót bảng. Nếu cả nhóm chỉ chạy mock rồi kết luận, chúng tôi đã trao "quán quân" cho chiến lược thực ra
+> kém nhất. Đây là lý do tôi tin phần giá trị nhất của bài này không phải điểm số, mà là việc **biết số liệu
+> của mình đáng tin tới đâu**.
+>
+> *(Điểm muốn mang ra thảo luận với nhóm khác sau demo)* — liệu nhóm khác có gặp cùng hiện tượng tài liệu
 > "dùng chung" (`role: both`) làm hỏng metadata filter không, và họ gắn tag ở mức file hay mức chunk.
 
 ---

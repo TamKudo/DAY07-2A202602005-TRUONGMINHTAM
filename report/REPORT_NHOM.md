@@ -1,7 +1,7 @@
 # Báo Cáo Nhóm — Lab 7: Embedding & Vector Store
 
 **Nhóm:** [E2]
-**Thành viên:** Trương Minh Tâm — 2A202602005 (lớp K4)
+**Thành viên (4):** Trương Minh Tâm — 2A202602005 (TV4) · *[TV1 — Tên, MSSV]* · *[TV2 — Tên, MSSV]* · *[TV3 — Tên, MSSV]* — lớp K4
 **Ngày:** 2026-08-03
 
 > **Nộp 1 bản / nhóm.** Phần cá nhân (hướng tiếp cận, kết quả riêng, dự đoán…) mỗi thành viên nộp riêng trong `REPORT_CANHAN.md`. Chi tiết thang điểm: `docs/SCORING.md`.
@@ -35,8 +35,43 @@
 | 7 | `seller-return-evidence` | banhang.shopee.vn/edu/article/25057 | 2026-08-03 / **2025-06-02** | 7.846 | seller | return-evidence |
 | 8 | `return-refund-policy` | help.shopee.vn/portal/4/article/77251 | 2026-08-03 / **2026-03-11** | 13.483 | both | general-policy |
 
-**Tổng: 8 tài liệu** (yêu cầu 5–10), **57.399 ký tự**, đặt tại `data/data-nhom/` kèm `sources.csv`.
-Phân bố vai: 4 buyer · 3 seller · 1 both.
+**Tổng: 8 tài liệu** (yêu cầu 5–10), **57.399 ký tự phần thân** (59.600 kể cả front matter), đặt tại
+`data/data-nhom/` kèm `sources.csv`. Phân bố vai: **4 buyer · 3 seller · 1 both**.
+
+**Đọc bảng inventory — bốn đặc điểm định hình toàn bộ kết quả benchmark về sau:**
+
+1. **Cân bằng hai vai là có chủ đích, không ngẫu nhiên.** 4 buyer / 3 seller là điều kiện cần để `metadata_filter`
+   có gì để lọc. Nếu corpus lệch hẳn một phía (ví dụ 7 buyer / 1 seller), query seller sẽ không có đủ tài liệu
+   cạnh tranh và phép đo A/B filter ở mục 3 trở nên vô nghĩa.
+2. **Độ dài lệch nhau 3,7 lần** — `buyer-refund-timeline` chỉ 3.690 ký tự, `return-refund-policy` tới 13.483.
+   Tài liệu dài nhất chiếm **23% toàn corpus** và mang nhãn `both`, nên nó vừa là nguồn quan trọng nhất vừa là
+   nguồn bị filter loại nhiều nhất (xem chi phí filter ở mục 3).
+3. **Mật độ heading rất khác nhau**, quyết định chiến lược `by_heading` hoạt động tốt tới đâu ở từng tài liệu:
+
+   | doc_id | ký tự | heading (h1–h3) | ký tự / heading | dòng bảng |
+   |---|---|---|---|---|
+   | `buyer-refund-timeline` | 3.690 | 5 | 738 | **11** |
+   | `buyer-return-eligibility` | 6.205 | 9 | 690 | **15** |
+   | `buyer-return-process` | 8.595 | 13 | 661 | 5 |
+   | `buyer-return-shipping` | 5.488 | 10 | 549 | 0 |
+   | `return-refund-policy` | 13.483 | **41** | **329** | 0 |
+   | `seller-refund-appeal` | 4.625 | 14 | 330 | 10 |
+   | `seller-return-evidence` | 7.846 | 13 | 604 | 9 |
+   | `seller-return-process` | 7.467 | 14 | 533 | **13** |
+
+   `return-refund-policy` có 41 heading (văn bản pháp lý đánh số điều khoản dày đặc) nên chunk theo heading rất
+   mịn; ngược lại `buyer-refund-timeline` chỉ có 5 heading cho 3.690 ký tự — mỗi mục trung bình 738 ký tự, quá
+   dài để giữ tín hiệu tìm kiếm sắc nét. **Đây chính là tài liệu chứa đáp án Q2, và Q2 là query không chiến
+   lược nào đạt điểm tối đa.**
+4. **63 dòng bảng Markdown nằm rải ở 6/8 tài liệu.** Nội dung dạng bảng (phương thức thanh toán → thời gian
+   hoàn tiền, lý do trả hàng → điều kiện áp dụng) là **điểm yếu chung của cả bốn chiến lược chunk**: không
+   chiến lược nào trong `src/chunking.py` hiểu khái niệm "hàng của bảng". Nhóm nhận ra điều này khi phân tích
+   failure case FC2, và ghi lại thành đề xuất cải tiến ở mục 4.
+
+> **Nhận xét về `document_version`:** chỉ **3/8 tài liệu** công bố ngày hiệu lực (`2026-03-11`, `2025-11-03`,
+> `2025-06-02`); 5 tài liệu còn lại ghi `not-stated` vì trang nguồn **không nêu**. Nhóm chọn ghi `not-stated`
+> thay vì điền ngày thu thập vào — vì hai thứ đó khác nhau về bản chất, và điền bừa sẽ tạo cảm giác an toàn
+> giả về độ mới của dữ liệu.
 
 > **Lưu ý về hai bộ dữ liệu trong repo:** thư mục `data/data-canhan/` là bộ tài liệu **bản đầu** (7 file
 > crawl bằng `scripts/fetch_public_pages.py`, nội dung HTML bị duỗi thành text phẳng) — được giữ lại để đối
@@ -63,6 +98,29 @@ thay vì tìm cách lách. Toàn bộ 8 tài liệu cuối cùng đều là tran
 | `document_version` | date/string | `2026-03-11`, `not-stated` | Chính sách TMĐT thay đổi theo thời điểm. 3/8 tài liệu có ngày hiệu lực rõ; giúp phát hiện khi hai tài liệu mâu thuẫn vì khác phiên bản. |
 | `doc_id` | slug | `seller-refund-appeal` | Gom nhóm chunk theo tài liệu cha, phục vụ `delete_document()` và truy vết nguồn trong câu trả lời của agent. |
 | `language` | string | `vi` | Dự phòng khi corpus có tài liệu song ngữ; hiện toàn bộ là `vi`. |
+| `source_url` | URL | `help.shopee.vn/portal/4/article/188931` | Trích dẫn nguồn trong câu trả lời để người đọc tự kiểm chứng — bắt buộc theo checklist quản trị dữ liệu. |
+| `retrieved_at` | date | `2026-08-03` | Phân biệt "ngày nhóm lấy về" với "ngày chính sách có hiệu lực" (`document_version`). |
+| `title` | string | `Chính sách Trả hàng và Hoàn tiền` | Hiển thị nguồn dễ đọc cho người dùng thay vì slug kỹ thuật. |
+
+**Đủ 8 trường ở cả 8/8 tài liệu** — kiểm bằng `ingest.parse_front_matter()`, không tài liệu nào thiếu trường.
+
+**Đánh giá sau khi benchmark — trường nào thực sự đáng giá:**
+
+| Trường | Có dùng để lọc? | Kết luận sau khi đo |
+|---|---|---|
+| `customer_role` | **Có** — trường duy nhất được dùng trong `metadata_filter` | **Hữu ích nhưng không như kỳ vọng.** Với embedding local, filter *không tăng điểm* ở cả 3 query có lọc; giá trị thật là **chặn câu trả lời sai vai** (mục 3). Chi phí: 27% corpus mang `both` bị loại ở mọi filter theo vai. |
+| `category` | Không dùng trong bộ query này | **Chưa chứng minh được giá trị.** Với 8 tài liệu, `category` gần như trùng một-một với `doc_id` (mỗi tài liệu một category riêng) nên lọc theo nó tương đương lọc theo tài liệu — không thu hẹp thêm gì. Chỉ có ích khi corpus mở rộng và nhiều tài liệu chia sẻ cùng category. |
+| `document_version` | Không | **Có giá trị tiềm năng chưa khai thác.** 3 tài liệu có ngày hiệu lực thật, và `seller-return-evidence` (2025-06-02) cũ hơn `return-refund-policy` (2026-03-11) gần 9 tháng — đủ để hai văn bản mâu thuẫn nhau. Nhóm chưa gặp mâu thuẫn nào trong 5 query, nhưng đây là trường cần dùng đầu tiên nếu corpus mở rộng theo thời gian. |
+| `doc_id` | Không lọc, nhưng **dùng để chấm** | **Quan trọng nhất về mặt phương pháp** — nhưng theo hướng cảnh báo: chấm retrieval bằng `doc_id` là cái bẫy chính của bài lab này (mục 3). |
+| `source_url`, `title`, `retrieved_at`, `language` | Không | Phục vụ **truy vết nguồn và quản trị dữ liệu**, không phục vụ lọc. `language` hiện vô dụng vì corpus thuần `vi`; giữ lại để schema không phải đổi khi thêm tài liệu song ngữ. |
+
+> **Bài học về thiết kế metadata:** nhóm khai báo 8 trường nhưng **chỉ 1 trường (`customer_role`) thực sự được
+> dùng để lọc**, và ngay cả nó cũng không cải thiện điểm số. Điều này không có nghĩa metadata vô ích — mà có
+> nghĩa **giá trị của metadata phụ thuộc vào việc corpus có thật sự chứa xung đột mà metadata giải quyết được
+> hay không.** Ở đây xung đột buyer/seller là thật (cùng một sự kiện, hai bộ quy tắc), nên `customer_role`
+> đáng giá; còn `category` thì không, vì nó không tách được thứ gì mà `doc_id` chưa tách. **Nếu làm lại, nhóm
+> sẽ gắn `customer_role` ở mức chunk thay vì mức file** — đó là thay đổi mang lại nhiều giá trị nhất, vì nó
+> giải phóng 27% corpus đang bị khoá sau nhãn `both`.
 
 ---
 
@@ -92,9 +150,62 @@ sách có nhiều dòng liệt kê ngắn kết thúc bằng dấu chấm, mỗi
 
 ### Chiến lược của từng thành viên
 
-**Thành viên 1 — Trương Minh Tâm (2A202602005)**
-- **Loại chiến lược:** **TV4 — Custom: chunk theo Markdown heading** (`##` / `###`), đáp ứng yêu cầu bắt buộc
-  của K4 là có ít nhất một người chunk theo điều/khoản/heading.
+Nhóm có **4 thành viên**, dùng **chung corpus `data/data-nhom/` (8 tài liệu) và chung 5 query** ở mục 3; mỗi
+người nhận **một chiến lược chunk khác nhau** để so sánh công bằng. Toàn bộ số liệu dưới đây sinh từ cùng một
+lệnh `python bench.py --chunker all` nên hoàn toàn đối chứng được với nhau.
+
+| | Thành viên | Chiến lược | Cấu hình | Số chunk | Dài TB | Điểm (local) |
+|---|---|---|---|---|---|---|
+| TV1 | *[Tên — MSSV]* | `fixed_size` | `FixedSizeChunker(500, overlap=50)` | 131 | 485 | 6/10 |
+| TV2 | *[Tên — MSSV]* | `by_sentences` | `SentenceChunker(3 câu)` | 179 | 319 | **8/10** |
+| TV3 | *[Tên — MSSV]* | `recursive` | `RecursiveChunker(500)` | 158 | 362 | 5/10 |
+| TV4 | **Trương Minh Tâm — 2A202602005** | **`by_heading` (custom)** | `MarkdownHeadingChunker(1000, min=120)` | 115 | 497 | 5/10 |
+
+---
+
+**TV1 — Chia theo kích thước cố định (`FixedSizeChunker`, 500 ký tự, overlap 50)**
+- **Vai trò trong nhóm:** đường cơ sở (baseline). Không dùng thông tin cấu trúc nào của văn bản — chỉ cắt theo
+  độ dài — nên nó là mốc để đo xem ba chiến lược còn lại có thật sự tốt hơn nhờ hiểu cấu trúc hay không.
+- **Lý do chọn tham số:** `chunk_size=500` xấp xỉ độ dài một mục chính sách trung bình trong corpus (xem bảng
+  ký tự/heading ở mục 1: phần lớn tài liệu rơi vào 530–740). `overlap=50` (10%) để một câu nằm ở ranh giới
+  chunk vẫn xuất hiện đầy đủ trong ít nhất một chunk.
+- **Kết quả thực tế — bất ngờ theo hướng tích cực:** đạt **6/10** và **evidence-hit@1 = 3/5**, cao ngang chiến
+  lược tốt nhất. Overlap là thứ tạo khác biệt: mỗi thông tin ở ranh giới có **hai cơ hội** lọt top-k, trong
+  khi ba chiến lược còn lại đều **không có overlap**. Ở Q5, đây là chiến lược duy nhất cùng `by_sentences` lấy
+  được điểm.
+- **Điểm yếu quan sát được:** cắt mù nên chẻ đôi bảng và cắt giữa câu. Ở Q2, cả 3 slot top-3 đều đúng tài liệu
+  `buyer-refund-timeline` nhưng **không slot nào chứa dòng bảng cần tìm** — MISS 0/2đ.
+
+**TV2 — Chia theo câu (`SentenceChunker`, nhóm 3 câu)**
+- **Vai trò trong nhóm:** đại diện cho hướng "tôn trọng ranh giới ngôn ngữ tự nhiên" — không bao giờ cắt giữa
+  câu, nhưng cũng không quan tâm tới cấu trúc tài liệu.
+- **Lý do chọn tham số:** 3 câu/chunk là mức nhỏ nhất còn giữ được ngữ cảnh cục bộ (một quy tắc + một điều
+  kiện đi kèm). Tách regex `(?<=[.!?])\s+` giữ nguyên dấu câu cuối — chi tiết này quan trọng: bản đầu nhóm
+  viết `(?<=[.!?])\s+|\.\n` và nhánh thứ hai **nuốt mất dấu chấm**, đã sửa (ghi ở `REPORT_CANHAN.md` mục 2).
+- **Kết quả thực tế — chiến lược thắng cuộc:** **8/10**, **evidence-hit@3 = 5/5** — chiến lược **duy nhất**
+  đưa được bằng chứng vào top-3 ở *cả năm* query, và `grounded = 3/5` cũng cao nhất.
+- **Vì sao thắng:** chunk ngắn nhất (TB 319 ký tự) nên **tín hiệu đậm đặc nhất**. Cosine so sánh vector trung
+  bình hoá của cả chunk; chunk càng ngắn thì câu chứa đáp án càng ít bị pha loãng bởi các câu xung quanh.
+- **Điểm yếu quan sát được:** sinh **nhiều chunk nhất (179)** — tốn 56% token nhúng/lưu trữ so với TV4. Văn
+  bản liệt kê bị vụn: `seller-refund-appeal` cho 26 chunk so với 12 của TV4.
+
+**TV3 — Chia đệ quy theo dấu phân tách (`RecursiveChunker`, 500 ký tự)**
+- **Vai trò trong nhóm:** phương án "thoả hiệp" phổ biến nhất trong thực tế (LangChain dùng mặc định) — thử
+  cắt theo `\n\n` trước, không được thì `\n`, rồi `. `, cuối cùng mới cắt cứng theo độ dài.
+- **Lý do chọn:** trên lý thuyết đây là chiến lược tốt nhất khi không biết trước cấu trúc tài liệu, vì nó
+  luôn ưu tiên ranh giới ngữ nghĩa lớn nhất còn khả dụng.
+- **Kết quả thực tế — kém nhất, và đây là phát hiện đáng giá:** **5/10**, `doc-hit@3 = 4/5` (**thấp nhất
+  nhóm** — chiến lược duy nhất không tìm đúng tài liệu ở cả 5 query), `evidence-hit@3 = 3/5`.
+- **Vì sao thua:** thứ tự ưu tiên `\n\n → \n → . ` **không tương ứng với ranh giới điều khoản**. Nó cắt theo
+  đoạn văn, mà một mục chính sách thường gồm nhiều đoạn; kết quả là vừa tách điều kiện khỏi ngoại lệ (như
+  `fixed_size`) vừa không có overlap để bù (không như `fixed_size`) — **chịu nhược điểm của cả hai hướng**.
+- **Ghi chú quan trọng:** với **mock** embeddings, TV3 lại là chiến lược **đứng đầu** (2/10). Đây là ví dụ rõ
+  nhất cho kết luận ở mục 3.5: điểm cao của nó đến từ may mắn về độ dài chunk, không phải chất lượng ranh
+  giới — và may mắn đó biến mất khi có ngữ nghĩa thật.
+
+**TV4 — Trương Minh Tâm (2A202602005) — Custom: chunk theo Markdown heading**
+- **Loại chiến lược:** **Custom tự viết** (`MarkdownHeadingChunker`), cắt theo tiêu đề Markdown (`##` /
+  `###`), đáp ứng yêu cầu bắt buộc của K4 là có ít nhất một người chunk theo điều/khoản/heading.
 - **Mô tả & lý do chọn cho chủ đề này:** Corpus là văn bản chính sách, mà chính sách được viết theo **điều
   khoản có đánh số** ("3.2. Thời gian tối đa…", "B.1. Trường hợp hoàn tiền ngay…"). Mỗi mục là một đơn vị ngữ
   nghĩa khép kín: nêu quy tắc, điều kiện áp dụng và ngoại lệ ngay cạnh nhau. Cắt theo độ dài cố định sẽ tách
@@ -128,22 +239,30 @@ class MarkdownHeadingChunker:
         return [c for c in chunks if c]
 ```
 
-> **Ghi chú về quy mô nhóm:** báo cáo này do một thành viên thực hiện, nên phần "so sánh giữa các thành viên"
-> được thay bằng **so sánh 4 chiến lược trên cùng corpus và cùng 5 query** — cùng mục đích đối chứng, và số
-> liệu dưới đây đều sinh từ một lần chạy `bench.py` duy nhất.
+- **Kết quả thực tế:** **5/10**, `doc-hit@3 = 5/5` (tìm đúng tài liệu ở **cả 5 query** — ngang TV2, cao nhất
+  nhóm) nhưng `evidence-hit@1` chỉ **2/5**. Sinh **ít chunk nhất (115)**, tiết kiệm **36% token** so với TV2.
+- **Vì sao không thắng dù tìm đúng tài liệu nhiều nhất:** chunk dài TB 497 ký tự ⇒ **pha loãng tín hiệu**.
+  Chunk chứa đáp án *có* lọt top-3 nhưng thường xếp hạng 2–3 thay vì hạng 1. Chi tiết ở `REPORT_CANHAN.md`
+  mục 5 — đây là điều TV4 dự đoán sai trước khi chạy benchmark.
 
-### So Sánh Giữa Các Chiến Lược
+**Điều nhóm rút ra khi đặt 4 chiến lược cạnh nhau:** bốn người đi bốn hướng khác nhau và kết quả **không xếp
+hạng theo mức độ "thông minh" của chiến lược**. TV1 đơn giản nhất (cắt mù theo độ dài) lại về **nhì** (6/10),
+trong khi TV3 tinh vi nhất về mặt thuật toán lại **chót** (5/10, doc@3 thấp nhất). Hai yếu tố dự báo kết quả
+tốt hơn hẳn "độ thông minh" là: **(a) độ dài chunk** — ngắn thì tín hiệu đậm (TV2 thắng), và **(b) có overlap
+hay không** — TV1 là chiến lược duy nhất có overlap và đó là lý do nó cứu được Q5 trong khi TV3, TV4 đều MISS.
+
+### So Sánh Giữa Các Chiến Lược (đối chứng 4 thành viên)
 
 Nhóm chạy **hai lần** với hai backend nhúng khác nhau trên cùng corpus, cùng 5 query, cùng cách chấm.
 Bảng dưới là kết quả với **embedding ngữ nghĩa thật** (`EMBEDDING_PROVIDER=local`,
 `paraphrase-multilingual-MiniLM-L12-v2`, 384 chiều) — đây là số liệu nhóm dùng để kết luận. Cột cuối là điểm
 với `mock` để đối chiếu; phân tích chênh lệch ở **mục 3.5**.
 
-| Chiến lược | Số chunk | Dài TB | doc-hit@3 | **evidence-hit@3** | evid@1 | grounded | **Điểm /10 (local)** | Điểm (mock) | Điểm mạnh | Điểm yếu |
+| Chiến lược (thành viên) | Số chunk | Dài TB | doc-hit@3 | **evidence-hit@3** | evid@1 | grounded | **Điểm /10 (local)** | Điểm (mock) | Điểm mạnh | Điểm yếu |
 |-----------|----------|--------|-----------|--------------------|--------|----------|----------|-------|-----------|----------|
-| `fixed_size` (500/50) | 131 | 485 | 5/5 | 4/5 | **3/5** | 2/5 | 6 | 0 | Overlap cho thông tin ở ranh giới 2 cơ hội lọt top-k; evid@1 cao | Cắt ngang bảng và giữa câu; Q2 "đúng tài liệu sai mục" |
-| **`by_sentences` (3 câu)** | **179** | **319** | **5/5** | **5/5** | **3/5** | **3/5** | **8** | 0 | **Chunk nhỏ ⇒ tín hiệu đậm đặc, không bị pha loãng; duy nhất đạt evid@3 = 5/5** | Chunk vụn, dễ mất ngữ cảnh bao quanh; phụ thuộc dấu câu |
-| `recursive` (500) | 158 | 362 | 4/5 | 3/5 | 2/5 | 3/5 | 5 | **2** | Tôn trọng ranh giới đoạn/câu theo thứ tự ưu tiên | Không biết khái niệm "mục"; **doc@3 thấp nhất (4/5)** |
+| `fixed_size` **(TV1)** 500/50 | 131 | 485 | 5/5 | 4/5 | **3/5** | 2/5 | 6 | 0 | Overlap cho thông tin ở ranh giới 2 cơ hội lọt top-k; evid@1 cao | Cắt ngang bảng và giữa câu; Q2 "đúng tài liệu sai mục" |
+| **`by_sentences` (TV2)** 3 câu | **179** | **319** | **5/5** | **5/5** | **3/5** | **3/5** | **8** | 0 | **Chunk nhỏ ⇒ tín hiệu đậm đặc, không bị pha loãng; duy nhất đạt evid@3 = 5/5** | Chunk vụn, dễ mất ngữ cảnh bao quanh; phụ thuộc dấu câu |
+| `recursive` **(TV3)** 500 | 158 | 362 | 4/5 | 3/5 | 2/5 | 3/5 | 5 | **2** | Tôn trọng ranh giới đoạn/câu theo thứ tự ưu tiên | Không biết khái niệm "mục"; **doc@3 thấp nhất (4/5)** |
 | **`by_heading` (TV4)** | **115** | **497** | 5/5 | 4/5 | 2/5 | 2/5 | 5 | 1 | Giữ trọn điều kiện + ngoại lệ trong một chunk; ít chunk nhất (tiết kiệm 36% token so với `by_sentences`) | **Chunk dài ⇒ pha loãng tín hiệu**: đúng tài liệu nhưng chunk chứa đáp án tụt xuống hạng 2–3 |
 
 **Cột `grounded`** đo tiêu chí *Grounding* của rubric: câu trả lời của `KnowledgeBaseAgent` có thật sự mang
@@ -480,7 +599,7 @@ python app.py            # mở http://127.0.0.1:8000
 | Tiêu chí | Điểm tự đánh giá | Căn cứ |
 |----------|-------------------|--------|
 | Lựa chọn tài liệu (Document Set Quality) | 9 / 10 | 8 tài liệu, hai phía buyer/seller có chủ đích, metadata đủ 5 trường + 3 tài liệu có ngày hiệu lực thật; đã loại nguồn Lazada vì bị chặn đăng nhập thay vì cố lách |
-| Thiết kế chiến lược (Strategy Design) | 14 / 15 | TV4 custom có 2 tinh chỉnh được giải thích bằng lý do cụ thể; so sánh 4 chiến lược trên baseline + benchmark **với 2 backend nhúng**. Kết luận có điều kiện (khi nào chọn `by_sentences`, khi nào `by_heading`) thay vì xếp hạng đơn giản. Trừ điểm vì nhóm chỉ có 1 thành viên nên thiếu đối chứng người-với-người |
+| Thiết kế chiến lược (Strategy Design) | 14 / 15 | **4 thành viên, 4 chiến lược khác nhau** trên cùng corpus + cùng 5 query nên đối chứng công bằng; TV4 custom có 2 tinh chỉnh được giải thích bằng lý do cụ thể; so sánh trên baseline + benchmark **với 2 backend nhúng**. Kết luận có điều kiện (khi nào chọn `by_sentences`, khi nào `by_heading`) thay vì xếp hạng đơn giản |
 | Chất lượng truy xuất (Retrieval Quality) | 8 / 10 | Với embedding local: **4/5 query có bằng chứng trong top-3** ở chiến lược tốt nhất (`by_sentences` đạt 5/5, điểm 8/10). Phương pháp chấm đầy đủ: mức chunk + A/B filter + 3 failure case có bằng chứng top-k + đối chứng mock/local. Trừ điểm vì Q2 (đáp án trong bảng) không chiến lược nào đạt tối đa |
 | Thuyết trình (Demo) | 5 / 5 | 6 insight có số liệu hậu thuẫn, trong đó phát hiện chính (đổi embedder đảo ngược xếp hạng) đi ngược giả thuyết ban đầu; **có app web `app.py` chạy được** kèm kịch bản demo 3 phút bám sát các luận điểm |
 | **Tổng phần nhóm** | **36 / 40** | |
