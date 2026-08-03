@@ -1,7 +1,13 @@
 # Báo Cáo Nhóm — Lab 7: Embedding & Vector Store
 
 **Nhóm:** [E2]
-**Thành viên (4):** Trương Minh Tâm — 2A202602005 (TV4) · *[TV1 — Tên, MSSV]* · *[TV2 — Tên, MSSV]* · *[TV3 — Tên, MSSV]* — lớp K4
+**Thành viên (5):**
+Trần Văn Toàn - 2A202601218 (TV1)
+Phạm Hải Yến - 2A202601152 (TV2)
+Trần Hoàng Khôi - 2A202601778 (TV3)
+Trương Minh Tâm — 2A202602005 (TV4) ·
+Trần Minh Hiển-2A202601812 (TV5)
+ — lớp D303 K4
 **Ngày:** 2026-08-03
 
 > **Nộp 1 bản / nhóm.** Phần cá nhân (hướng tiếp cận, kết quả riêng, dự đoán…) mỗi thành viên nộp riêng trong `REPORT_CANHAN.md`. Chi tiết thang điểm: `docs/SCORING.md`.
